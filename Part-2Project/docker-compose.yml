@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  catalog:
+    build: ./catalog-service
+    container_name: catalog
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./catalog-service/catalog.db:/app/catalog.db
+    networks:
+      - bazar-net
+
+  order:
+    build: ./order-service
+    container_name: order
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./order-service/orders.db:/app/orders.db
+    networks:
+      - bazar-net
+    depends_on:
+      - catalog
+
+  client:
+    build: ./client-service
+    container_name: client
+    networks:
+      - bazar-net
+    depends_on:
+      - catalog
+      - order
+    stdin_open: true    
+    tty: true           
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: bazar-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - bazar-net
+    depends_on:
+      - catalog
+      - order
+      - client
+
+networks:
+  bazar-net:
+    driver: bridge
